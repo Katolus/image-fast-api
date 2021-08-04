@@ -1,12 +1,18 @@
 """Stores all the logic responsible to running a FastAPI server"""
+import io
 from fastapi import FastAPI
 from fastapi import File
+from fastapi import HTTPException
+from fastapi import Response
 from fastapi import UploadFile
 from fastapi.responses import PlainTextResponse
-
+from PIL import Image
 
 from errors import ValidationError
-from images import find_image
+from images import get_format_from_extension
+from images import get_media_type_from_extension
+from images import resize_image
+from storage import search_image
 from storage import store_image
 from validators import validate_image
 
@@ -49,13 +55,21 @@ async def get_images(id: str, w: int = None, h: int = None):
 
     Returns a NotFound message if the `id` doesn't match any existing images.
     """
-    # Find image
-    image = find_image(id)
+    image_path, image_extension = search_image(id)
+    if not image_path:
+        raise HTTPException(status_code=404, detail=f"Image ({id}) was not found!")
 
-    # If query paramters passed in the attempt to resize the image
+    response_bytes = io.BytesIO()
+    image_format = get_format_from_extension(image_extension)
+    image_media_type = get_media_type_from_extension(image_extension)
 
-    # If image not found return a NotFound
+    try:
+        with Image.open(image_path) as image:
+            if w or h:
+                image = resize_image(image, w, h)
 
-    # Return the image
+            image.save(response_bytes, format=image_format)
 
-    return "This is a GET message"
+        return Response(content=response_bytes.getvalue(), media_type=image_media_type)
+    finally:
+        response_bytes.close()

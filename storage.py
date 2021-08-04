@@ -2,6 +2,8 @@
 import datetime
 import hashlib
 import os
+from typing import List
+from typing import Tuple
 
 from fastapi import UploadFile
 
@@ -37,6 +39,24 @@ def generate_image_id(image: UploadFile) -> str:
     h = hashlib.md5()
     h.update(f"{image.filename}_{now}".encode())
     return h.hexdigest()
+
+
+def filter_images_matching_id(files: List[str], id: str) -> Tuple[str, str]:
+    for file in files:
+        file_name, file_extension = os.path.splitext(file)
+        if file_name == id:
+            return file_name, file_extension
+
+
+def search_image(id, dir_path=IMAGE_DIRECTORY) -> Tuple[str, str]:
+    """Searches storage for an image path."""
+    for dirpath, dirnames, filenames in os.walk(IMAGE_DIRECTORY):
+        image_name, image_extension = filter_images_matching_id(filenames, id)
+        if image_name and image_extension:
+            return (
+                os.path.join(dir_path, f"{image_name}{image_extension}"),
+                image_extension,
+            )
 
 
 def store_image(image) -> str:
