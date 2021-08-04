@@ -17,6 +17,7 @@ def ensure_directory_exists(dir_path: str):
 
 
 def get_extension_from_image(image: UploadFile) -> str:
+    """Returns an extension from an upload image file dogs.jpg -> .jpg"""
     return os.path.splitext(image.filename)[1]
 
 

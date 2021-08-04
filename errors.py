@@ -1,7 +1,19 @@
 """Holds logic for core errors."""
 
 
-class ValidationError(Exception):
+class BaseError(Exception):
     """An error that occurred during validation."""
+
+    pass
+
+
+class BadRequest(BaseError):
+    """Bad Request"""
+
+    pass
+
+
+class UnsupportedMediaTypeError(BaseError):
+    """Invalid Media Type"""
 
     pass

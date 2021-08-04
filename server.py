@@ -6,9 +6,11 @@ from fastapi import HTTPException
 from fastapi import Response
 from fastapi import UploadFile
 from fastapi.responses import PlainTextResponse
+from fastapi.responses import JSONResponse
 from PIL import Image
 
-from errors import ValidationError
+from errors import BadRequest
+from errors import UnsupportedMediaTypeError
 from images import get_format_from_extension
 from images import get_media_type_from_extension
 from images import resize_image
@@ -20,41 +22,45 @@ from validators import validate_query_params
 app = FastAPI()
 
 
-@app.exception_handler(ValidationError)
+@app.exception_handler(UnsupportedMediaTypeError)
 async def validation_exception_handler(request, exc):
-    return PlainTextResponse(str(exc), status_code=422)
+    return PlainTextResponse(str(exc), status_code=415)
+
+
+@app.exception_handler(BadRequest)
+async def validation_exception_handler(request, exc):
+    return PlainTextResponse(str(exc), status_code=400)
 
 
 @app.post("/images/")
 async def post_images(image: UploadFile = File(...)):
     """
-    Accepts `JPEG` and `PNG` images and stores them.
+    Accepts `JPEG`, `JPG` and `PNG` images and stores them in disk space.
 
-    Returns an `image_id` value when success.
+    Returns an `image_id` value when successful.
 
-    Returns a ValidationError when validation fails.
+    Returns a `415` [Unsupported Media Type] response if the file wasn't in a correct format.
     """
     validate_image(image)
     image_id: str = store_image(image)
 
-    return {"image_id": image_id}
+    return JSONResponse(content={"image_id": image_id}, status_code=201)
 
 
 @app.get("/images/{id}")
 async def get_images(id: str, w: int = None, h: int = None):
     """
-    Accepts `id` as a positional argument and two additional query parameters `w` and `h`.
+    Accepts `id` as a URL argument and two additional query parameters: `w` and `h`.
 
-    - `id` - unique identifier for an an image [required].
-    - `w` - width of the image returned.
-    - `h` - height of the image returned.
+    - `id` - unique identifier of an image.
+    - `w` - new width of a image returned.
+    - `h` - new height of a image returned.
 
-    Returns an image when the `id` matches stored images.
-        If the query paramters are valid, the image will be resized accordingly.
+    Returns a resized image (given the query parameters) if `id` matches a stored image.
 
-        Returns an invalid input error when either of the query parameters doesn't match criteria.
+    Returns a `NotFound` message if the `id` doesn't match any existing images.
 
-    Returns a NotFound message if the `id` doesn't match any existing images.
+    Returns a `400` Bad Request when invalid query parameters are passed in.
     """
     image_path, image_extension = search_image(id)
     if not image_path:

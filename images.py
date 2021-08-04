@@ -1,4 +1,6 @@
 """Stores the logic specific to images"""
+from typing import List
+
 from PIL import Image
 
 
@@ -6,6 +8,16 @@ class ImageProcessingError(Exception):
     """Error that occurred during process of an image."""
 
     pass
+
+
+class ImageContentType:
+    JPEG = "image/jpeg"
+    PNG = "image/png"
+
+    @classmethod
+    @property
+    def valid_types(cls) -> List[str]:
+        return [cls.JPEG, cls.PNG]
 
 
 def get_format_from_extension(image_extension: str) -> str:
