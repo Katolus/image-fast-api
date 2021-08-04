@@ -15,6 +15,7 @@ from images import resize_image
 from storage import search_image
 from storage import store_image
 from validators import validate_image
+from validators import validate_query_params
 
 app = FastAPI()
 
@@ -66,6 +67,7 @@ async def get_images(id: str, w: int = None, h: int = None):
     try:
         with Image.open(image_path) as image:
             if w or h:
+                validate_query_params(image, w, h)
                 image = resize_image(image, w, h)
 
             image.save(response_bytes, format=image_format)
